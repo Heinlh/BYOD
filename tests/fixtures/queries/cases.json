@@ -1,0 +1,76 @@
+{
+  "supported": [
+    {
+      "query": "What am I giving up if I study tonight instead of taking a paid shift?",
+      "filename": "economics.pdf",
+      "locator": "p. 1",
+      "evidence": "forgone wages"
+    },
+    {
+      "query": "Why could charging more make a business earn less revenue?",
+      "filename": "economics.pdf",
+      "locator": "p. 2",
+      "evidence": "elastic"
+    },
+    {
+      "query": "What happens to the buying power of cash when prices rise generally?",
+      "filename": "economics.pdf",
+      "locator": "p. 3",
+      "evidence": "purchasing power"
+    },
+    {
+      "query": "What does a 95 percent confidence interval mean over repeated samples?",
+      "filename": "statistics.docx",
+      "locator": "Confidence intervals",
+      "evidence": "repeated samples"
+    },
+    {
+      "query": "If I collect a bigger sample, what happens to the uncertainty interval?",
+      "filename": "statistics.docx",
+      "locator": "Confidence intervals",
+      "evidence": "narrows"
+    },
+    {
+      "query": "Is a p value the chance that my null hypothesis is true?",
+      "filename": "statistics.docx",
+      "locator": "P values",
+      "evidence": "not the probability"
+    },
+    {
+      "query": "How does assigning people to treatments by chance help with confounding?",
+      "filename": "statistics.docx",
+      "locator": "Random assignment",
+      "evidence": "confounding"
+    },
+    {
+      "query": "How can TCP recover data that never reaches the receiver?",
+      "filename": "networks.pptx",
+      "locator": "slide 1",
+      "evidence": "retransmission"
+    },
+    {
+      "query": "Why might a website still resolve to its old address after a DNS change?",
+      "filename": "networks.pptx",
+      "locator": "slide 2",
+      "evidence": "TTL"
+    },
+    {
+      "query": "How does HTTPS stop someone on the network from reading application data?",
+      "filename": "networks.pptx",
+      "locator": "slide 3",
+      "evidence": "Encryption"
+    },
+    {
+      "query": "Why would a video call use UDP even though some packets can disappear?",
+      "filename": "networks.pptx",
+      "locator": "slide 4",
+      "evidence": "voice or video"
+    }
+  ],
+  "unsupported": [
+    "Who wrote Pride and Prejudice?",
+    "How do I bake a chocolate cake?",
+    "Who won the football world cup in 1998?",
+    "What is tomorrow's weather?"
+  ]
+}

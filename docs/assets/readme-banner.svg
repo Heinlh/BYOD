@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title description">
+  <title id="title">BYOD — Bring Your Own Documents</title>
+  <desc id="description">Your reading. Within reach. A local reading assistant for PDF, DOCX, and PPTX.</desc>
+  <rect width="1200" height="320" rx="16" fill="#111115"/>
+  <rect x="0.5" y="0.5" width="1199" height="319" rx="15.5" fill="none" stroke="#2b2b34"/>
+  <g transform="translate(48 40)" fill="none" stroke="#ac94e9" stroke-width="2" stroke-linejoin="round">
+    <path d="M18 2H3v28h23V10Z M18 2v8h8 M9 16h11 M9 22h8"/>
+  </g>
+  <text x="93" y="65" fill="#e4e3ea" font-family="Segoe UI,Arial,sans-serif" font-size="27" font-weight="650" letter-spacing="3">BYOD</text>
+  <text x="1103" y="62" fill="#a6a4b1" font-family="Segoe UI,Arial,sans-serif" font-size="13" letter-spacing="2">V1</text>
+  <text x="48" y="144" fill="#e4e3ea" font-family="Georgia,serif" font-size="49">Your reading. Within reach.</text>
+  <text x="50" y="184" fill="#a6a4b1" font-family="Segoe UI,Arial,sans-serif" font-size="18">Bring Your Own Documents · Ask in your own words · Follow the source</text>
+  <path d="M48 223H1152" stroke="#2b2b34"/>
+  <g fill="#1c1c22" stroke="#2b2b34">
+    <rect x="48" y="249" width="66" height="30" rx="6"/>
+    <rect x="124" y="249" width="76" height="30" rx="6"/>
+    <rect x="210" y="249" width="76" height="30" rx="6"/>
+  </g>
+  <g fill="#a6a4b1" font-family="Segoe UI,Arial,sans-serif" font-size="12" text-anchor="middle" letter-spacing="1">
+    <text x="81" y="269">PDF</text><text x="162" y="269">DOCX</text><text x="248" y="269">PPTX</text>
+  </g>
+  <circle cx="870" cy="264" r="4" fill="#94b9a3"/>
+  <text x="885" y="269" fill="#a6a4b1" font-family="Segoe UI,Arial,sans-serif" font-size="13">Local library. Your choice of AI.</text>
+</svg>

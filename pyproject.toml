@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "byod"
+version = "0.1.0"
+description = "Bring Your Own Documents: local-first reading and study"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+  "platformdirs>=4,<5",
+  "sqlite-vec>=0.1.6,<0.2",
+  "pymupdf>=1.26,<2",
+  "python-docx>=1.1,<2",
+  "python-pptx>=1,<2",
+  "tokenizers>=0.21,<1",
+  "onnxruntime>=1.20,<2",
+  "numpy>=2,<2.4",
+  "keyring>=25,<26",
+  "httpx>=0.27,<1",
+]
+
+[project.scripts]
+byod = "byod.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1", "mypy>=1.14,<2", "httpx>=0.27,<1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["byod"]
+exclude = ["byod/ui/node_modules", "byod/ui/test-results", "byod/ui/e2e"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"byod/ui/dist" = "byod/ui/dist"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [".tools", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+exclude = ["^\\.tools/", "^\\.venv/", "node_modules/", "byod/ui/dist/"]
+
+[[tool.mypy.overrides]]
+module = ["sqlite_vec", "onnxruntime"]
+ignore_missing_imports = true
+
+# PyMuPDF exposes a partly untyped native API. Keep our functions and all other
+# strict checks enabled, but permit calls into that API at the parser boundary.
+[[tool.mypy.overrides]]
+module = ["byod.ingest.parsers.pdf", "create_fixtures", "create_query_fixtures"]
+disallow_untyped_calls = false
