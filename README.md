@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="docs/assets/readme-banner.svg" alt="BYOD — Bring Your Own Documents. Your reading. Within reach." width="100%" />
 </p>
 
@@ -268,5 +268,3 @@ uv run byod reindex "Course"
   <a href="AGENTS.md">Agent instructions</a> ·
   <a href="AGENT_MEMORY.md">Progress log</a>
 </p>
-#   B Y O D  
- 

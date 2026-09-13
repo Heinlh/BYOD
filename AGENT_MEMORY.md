@@ -16,6 +16,8 @@
 - README presentation refreshed with the app's colors/type style, a local SVG
   banner, screenshots, and step-by-step setup instructions; documentation checks
   and visual inspection passed, as did all 35 tests, Ruff, and mypy (52 files).
+- README GitHub rendering repaired after finding an appended UTF-16 fragment in
+  the UTF-8 file. GitHub-rendered HTML now has proper headings, tables, and code.
 
 ## Logging protocol
 
@@ -364,3 +366,24 @@ prompts, or retrieved context.
 - Scope review: README, local SVG documentation asset, and this memory file only;
   no runtime changes, new dependencies, or unresolved task blockers.
 - Next: user can read the refreshed README and follow its setup instructions.
+
+### 2026-09-12 - Loop 27: repair README encoding and verify GitHub rendering
+
+- User screenshot showed Markdown displayed as raw text. Reproduced a file-encoding
+  regression: eight null bytes in an appended UTF-16 duplicate heading after the
+  UTF-8 document. Removed that corrupted trailer and the leading BOM; saved UTF-8.
+- Kept existing branding, content, and setup instructions. Git diff confirms only
+  encoding/trailer cleanup in README; no application changes.
+- GitHub's non-publishing Markdown API returned HTTP 200. Rendered its HTML locally
+  in isolated headless Chrome: 11 headings, 4 tables, 8 code blocks, all images loaded.
+  Visual inspection confirmed real headings/table layout instead of raw syntax.
+- Repository-required regression checks running. No commit or push performed.
+- Next: finish checks and report the local correction.
+
+### 2026-09-12 - Loop 28: README repair checks passed
+
+- All 35 tests passed in 30.33 seconds (two unchanged upstream warnings), Ruff
+  passed, and strict mypy passed on 52 files. GitHub render/visual checks passed
+  in the prior loop. README has no null bytes and preserves its intended layout.
+- Changed files: README.md and this progress log. Fix is local and ready for the
+  user's normal Git commit/push workflow; remote repository was not modified.
