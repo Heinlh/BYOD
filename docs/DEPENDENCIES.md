@@ -48,3 +48,17 @@ Playwright Test is development-only. The installed browser plugin has no connect
 browser in this environment, so Playwright drives the installed Chrome in a fresh
 headless test context for console, keyboard, document ingestion, streaming, and
 citation acceptance checks. It is not included in the runtime application bundle.
+
+Windows desktop packaging, explicitly requested and approved by the user:
+
+- `pywebview` is an optional `desktop` dependency, supplying the native WebView2
+  window. Its Windows dependencies include pythonnet/clr-loader for .NET interop;
+  Bottle/proxy-tools are upstream dependencies, but BYOD does not start Bottle's
+  server or expose a Python API object. FastAPI remains the single local server.
+- `PyInstaller` is isolated in the `packaging` build group. It bundles Python,
+  native inference/parser libraries, the OS-keychain backend, and the compiled UI.
+- Inno Setup is an external build tool already installed on this machine; it
+  creates the per-user Windows installer, shortcuts, and uninstaller.
+- Microsoft's signed WebView2 bootstrapper is packaged as an installer prerequisite
+  and runs only if the runtime is absent. This setup-time download is separate
+  from BYOD's restricted application runtime network use.

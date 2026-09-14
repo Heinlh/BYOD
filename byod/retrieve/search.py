@@ -1,6 +1,7 @@
 """Filter before vector search; assemble source-located context within a token cap."""
 
 import json
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -40,9 +41,13 @@ class Retriever:
         document_ids: list[int] | None = None,
         doc_type: str | None = None,
         k: int = 20,
+        stats: dict[str, float] | None = None,
     ) -> list[SearchResult]:
+        """`stats`, when given, receives phase seconds and counts only, never text."""
+        stats = {} if stats is None else stats
         if not query.strip() or document_ids == []:
             return []
+        started = time.perf_counter()
         with connect(self.config) as db:
             if not db.execute("SELECT 1 FROM workspaces WHERE id=?", (workspace_id,)).fetchone():
                 raise ValueError("Workspace not found")
@@ -66,9 +71,14 @@ class Retriever:
                 sql += " AND d.doc_type=?"
                 params.append(doc_type)
             candidates = [int(row[0]) for row in db.execute(sql, params)]
+        stats["candidates"] = time.perf_counter() - started
+        stats["candidate_count"] = len(candidates)
         if not candidates:
             return []
+        started = time.perf_counter()
         vector = self.embedder.embed([query])[0]
+        stats["embed"] = time.perf_counter() - started
+        started = time.perf_counter()
         with connect(self.config) as db:
             # Candidate IDs, vector results, and source text share one read snapshot.
             # Refresh the candidates after inference to account for concurrent writes.
@@ -76,7 +86,11 @@ class Retriever:
             if stale_index(db, workspace_id):
                 raise ByodError("STALE_INDEX")
             candidates = [int(row[0]) for row in db.execute(sql, params)]
+            stats["candidates"] += time.perf_counter() - started
+            started = time.perf_counter()
             ranked = SqliteVecStore(db).search(vector, k, candidates)
+            stats["search"] = time.perf_counter() - started
+            started = time.perf_counter()
             rows = {
                 int(row["id"]): row
                 for row in db.execute(
@@ -104,6 +118,7 @@ class Retriever:
                     score,
                 )
             )
+        stats["hydrate"] = time.perf_counter() - started
         return result
 
     def context(

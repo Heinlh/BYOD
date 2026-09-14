@@ -2,6 +2,22 @@
 
 ## Current status
 
+- Active task (2026-09-13): diagnose whole-workspace query latency. Stage 0
+  (measurement) blocked on valid 5k/25k whole-workspace provider timings: the host
+  paused during the run. No latency fix has been written. Unloaded retrieval
+  measurements and the first successful provider timings are recorded below.
+  Bench data lives in `%LOCALAPPDATA%/byod/Cache/bench/{1k,5k,25k}`, built by
+  `scripts/bench_scale.py build`.
+- Environment note: restored desktop/packaging extras with locked uv sync.
+  Full pytest passed (38 tests, 54.36 s), Ruff passed, mypy passed (57 files).
+  Benchmark process finished; its Ollama model was unloaded. No test process remains.
+
+- Previous task: user requested a Windows .exe installer and explicitly selected a
+  dedicated desktop window. Implementing optional pywebview/WebView2, PyInstaller,
+  and Inno Setup packaging while retaining the single local Python process.
+- Development browser server was stopped to unlock the Python launcher during
+  dependency installation. Desktop/installer verification is now in progress.
+
 - Specification supplied as root `BYOD_SPEC.md`, initially copied to authoritative
   `docs/BYOD_SPEC.md`; both include the approved calibrated relevance cutoff.
 - Working v1 (M1 through M6) verified. 35 Python tests, Ruff, strict mypy on 52
@@ -28,6 +44,85 @@ checks actually run from planned checks. Do not record secrets, document text,
 prompts, or retrieved context.
 
 ## Progress log
+
+### 2026-09-14 - Loop 39: final instrumentation regression and report
+
+- Unloaded only the benchmark's qwen3.6 model through Ollama's keep_alive=0 request.
+  Full pytest: 38 passed in 54.36 s, two existing upstream deprecation warnings.
+  This includes all 15 labeled retrieval/rejection cases, document/doc_type filter
+  gates, real ingestion, and the benchmark timeout-reporting regression.
+- Ruff check . passed; mypy . passed on 57 files; git diff --check passed (line-ending
+  notices only). Reviewed latency changes: instrumentation/debug/script/tests only,
+  no format-specific retrieval logic or production retrieval policy change.
+- tests/BENCHMARK.md now contains the full baseline phase table, provider samples,
+  corpus limitations, interruption evidence, and explicit absence of after-change
+  results. Spec follow-up is CLI appendix documentation; section 7.1 is unchanged.
+- Remaining blocker: valid uninterrupted 5k/25k whole-workspace provider baseline.
+  Stage 0 is not claimed complete, no acceptance target is claimed met, and A-D are
+  unapplied as required by the user's measurement-first rule. Resume there.
+
+### 2026-09-14 - Loop 38: interrupted provider matrix; Stage 0 remains incomplete
+
+- All six provider cells attempted, one case / one measured run each. Successful
+  TTFT milliseconds: 1k workspace 429394.3, document 39835.6; 5k document 42484.0;
+  25k document 48114.7. Context counts for that case: workspace 17/17/19 chunks,
+  7777/7948/7982 tokens; document 4 chunks and 415 tokens at every tier.
+- 5k/25k whole-workspace requests timed out. Raw elapsed waits were 3176466.1 and
+  14163633.9 ms; these are NOT valid prefill/TTFT measurements. A requested 45-second
+  clock wait actually lasted 13989.5 seconds, demonstrating a long host interruption.
+  System power-event query returned no records, so the precise cause is unverified.
+- Saved raw diagnostic output to `.tools/bench-before-ttft.txt`; documented repeatable
+  commands, corpus limitations, and the unloaded baseline in tests/BENCHMARK.md.
+- Restored missing test import after Ruff had removed the shadowed import. Ruff and
+  mypy passed. Full pytest rerun now follows unloading the benchmark's Ollama model.
+- Blocker: cannot honestly complete Stage 0's provider comparison using interrupted
+  samples. Per the explicit no-fix-before-measurement instruction, A-D remain unapplied.
+  Next: complete gates, then rerun missing provider baseline cells during uninterrupted
+  host uptime before choosing Fix A (the measured context-volume bottleneck).
+
+### 2026-09-13 - Loop 37: first provider result and timeout regression
+
+- First Stage 0 provider cell completed: 1,189 chunks, whole workspace, 17 included
+  chunks / 7,777 tokenizer tokens; warm-up 52,671.4 ms, successful TTFT 429,394.3 ms.
+  Retrieval in this memory-contended provider run was 1,677.9 ms (candidates 28.4,
+  embedding 116.0 separately, search 42.1, assembly 1,607.4). Use loop 34's unloaded
+  20-run measurements for retrieval comparisons, not this single contended sample.
+- Added a real-ingestion benchmark regression with only the provider mocked: a
+  timeout must produce failed-wait timing and no successful TTFT sample.
+- Full Ruff passed. Mypy caught a local command-list variable shadowing the bench
+  function; renamed it. Regression execution and recheck remain pending.
+- Next: finish the remaining five provider cells and record the full Stage 0 table
+  before applying relevance-bounded context. No production fix written yet.
+
+### 2026-09-13 - Loop 36: benchmark validity and environment checks
+
+- Restored the existing desktop/packaging extras with locked uv sync (succeeded).
+  Corrected benchmark reporting so provider timeouts are separate failed-wait lower
+  bounds, not successful TTFT samples; each phase now reports its sample count.
+  This changes measurement only, not retrieval or provider behavior.
+- Ruff passed for the CLI. Started full pytest, but stopped that task-owned process
+  after observing severe contention with the 23 GB CPU-only Ollama model; the test
+  run is incomplete and will be repeated with the provider unloaded. Full Ruff then
+  passed; mypy is pending. No latency fix has been written.
+- Six-cell TTFT matrix is still running. Its first child loaded the old reporting
+  code; any timeout in that first result must be interpreted as a lower bound.
+- Next: finish uncontended provider measurement, record the baseline and choose
+  only the measured bottleneck; rerun full tests after unloading the test model.
+
+### 2026-09-13 - Loop 35: resume latency measurements
+
+- Read the pasted latency task, current memory, spec, retrieval/store/configuration,
+  benchmark CLI/script, and quality tests. Existing Stage 0 scale data and retrieval
+  measurements from loops 33-34 are present; no optimization has been applied.
+- The previously recorded TTFT process is no longer running and its output was not
+  found. Restarted the six-cell provider matrix (one labeled case, one measured run
+  per size/scope) with output saved to `.tools/bench-before-ttft.txt`.
+- Process inspection initially failed under the sandbox; escalated read succeeded.
+  Only Ollama is running, with no competing Python benchmark or development server.
+- Final installer rebuild from the previous task succeeded, but installed acceptance
+  remains pending while the user's new latency task is active.
+- Next: record provider timings before any fix; assembly/context volume is the
+  current measured retrieval bottleneck. No test pass claimed for this loop.
 
 ### 2026-09-12 - Loop 1: repository inspection and progress tracking
 
@@ -387,3 +482,120 @@ prompts, or retrieved context.
   in the prior loop. README has no null bytes and preserves its intended layout.
 - Changed files: README.md and this progress log. Fix is local and ready for the
   user's normal Git commit/push workflow; remote repository was not modified.
+
+### 2026-09-13 - Loop 29: desktop distribution implementation
+
+- User authorized a dedicated WebView2 app window and executable installer.
+  Added optional desktop/packaging dependency groups, desktop server/window lifecycle,
+  OS-released instance lock, fixed startup errors, hidden window/bundle checks,
+  PyInstaller spec, branded ICO, Inno installer, repeatable Windows build script,
+  and desktop setup/dependency/spec documentation. Added lifecycle/lock tests.
+- Provider and data architecture remains unchanged: same FastAPI/SQLite process,
+  private WebView2 session, no exposed Python API object or browser chat persistence.
+- Tooling failures resolved: running development launcher locked uv installation;
+  stopped only identified task-owned processes and synced successfully. A PowerShell
+  quote issue prevented the first optional-dependency command; used explicit TOML.
+  NSIS downloads returned HTML; found existing Inno Setup 6 and used that compiler.
+- Microsoft's prerequisite bootstrapper downloaded with valid Microsoft Authenticode
+  signature. No runtime installation executed yet. Icon generated from native shapes.
+- Ruff formatting fixed long lines; targeted desktop tests/types and a real hidden
+  WebView2 render check are running. Next: pass these gates, then freeze and install-test.
+
+### 2026-09-13 - Loop 30: desktop layer gates passed
+
+- Real WebView2 window loaded the compiled app and composer, then closed cleanly.
+  Both desktop tests passed: persistent workspace across server restart and real
+  Windows instance locking/release. Ruff passed; strict mypy passed on 56 files.
+- Fixed initial test expectation: closed Windows ports may time out instead of
+  immediately refusing connections; verified the server thread stops and socket
+  closes, accepting either transport failure. Fixed optional window type narrowing
+  and callable checks in the bundle diagnostic.
+- Started scripts/build_windows.ps1 to build frontend, frozen application, and
+  per-user installer with desktop/Start-menu shortcuts. No installer run yet.
+- Next: inspect PyInstaller output, run frozen diagnostics, test install/uninstall.
+
+### 2026-09-13 - Loop 31: first executable and installer built
+
+- Full build script succeeded through frontend and PyInstaller; Inno Setup compiled
+  BYOD-Setup-0.1.0-x64.exe. Frozen executable passed local API/UI, sqlite-vec, native
+  imports, and real isolated OS-keychain save/read/delete. Frozen WebView2 window
+  rendered the app and closed successfully without the development interpreter.
+- Added optional fixture-directory support to the bundle diagnostic so the final
+  installed executable can ingest real PDF/DOCX/PPTX and pass all 15 semantic cases.
+  Added a test of that path; full regression/type checks running before final rebuild.
+- README now leads with installer/desktop instructions; source setup is optional.
+  The executable is currently local, not published to GitHub Releases.
+- Next: final bundle rebuild, isolated install, full installed-query/window checks,
+  uninstall/data-preservation check, and delivery of the installer artifact.
+
+### 2026-09-13 - Loop 32: full packaging regression passed
+
+- All 38 tests passed, including the new package diagnostic ingesting PDF/DOCX/PPTX
+  and validating all 15 supported/unrelated query cases. Two existing upstream
+  warnings only. Ruff passed; mypy passed on 56 files. Frontend build passed earlier.
+- First installer size was 59.2 MB. Frozen API/native/keychain and WebView2 window
+  checks passed. Reviewed PyInstaller warning list: optional/unavailable platform,
+  typing, and unsupported feature modules; exercised native runtime paths work.
+- Rebuilding final executable/installer with the verified query diagnostic. Both
+  spec copies now record the explicitly approved desktop architecture addition.
+- Next: run the final installed executable against fixture queries and window;
+  test uninstall and preservation, then finalize documentation/artifact checksums.
+
+### 2026-09-13 - Loop 33: latency task, Stage 0 instrumentation and provider probe
+
+- Scope: whole-workspace query latency. Confined to index/, retrieve/, db/migrations.py,
+  config.py, debug CLI, tests, scripts. Read AGENTS.md, spec sections 4, 6, 7, 12, and
+  the retrieval/store/embed/chat/CLI code and retrieval/semantic tests.
+- Code inspection findings (not yet measured, no fix written): whole-workspace search
+  resolves every chunk ID twice, JSON-binds them into a sqlite-vec `chunk_id IN
+  json_each` filter, and stats every indexed source file per query. Context packs all
+  results above 0.70 toward 8000 tokens, recounting the whole joined context per result.
+- Changes: `Retriever.search(stats=)` records phase seconds/counts only; new
+  `byod debug bench <workspace> <query> [--doc] [--runs] [--no-llm]` reports
+  candidates/embed/search/assembly/retrieval/TTFT median and nearest-rank p95, cold
+  run, provider warm-up (model load), and counts. TTFT uses a per-run marker after the
+  fixed system text so Ollama's prefix cache cannot hide prefill; timeouts are recorded.
+  `scripts/bench_scale.py` builds real PDF/DOCX/PPTX from installed docstring prose
+  (8062 paragraphs), ingests through the real pipeline, snapshots 1k/5k/25k tiers, and
+  runs the matrix. CLI search gate test extended to cover bench output and no text leak.
+- Provider probe (direct Ollama, qwen3.6:latest 36B Q4_K_M, CPU only, i7-1270P, 31.7 GB
+  RAM with ~19 GB free before load): load 46.9 s; 41 prompt tokens 7.4 s; 279 tokens
+  32.3 s (8.6 tok/s, partly contended); 1639 tokens 659.1 s (2.5 tok/s, memory-bound).
+  The chat provider read timeout is 600 s, so any context above roughly 1.5k model
+  tokens times out on this machine. Strong prior that prefill dominates; bench pending.
+- Checks run: ruff check . passed; mypy . reported only the environmental `webview`
+  missing-import (desktop extra removed by this session's plain uv sync). pytest not
+  yet run for this loop. Generator smoke: PDF 237 chunks (mean 429 tok), DOCX 57, PPTX 57.
+- Next: finish tier build, run bench matrix (retrieval runs=20 no-llm; TTFT runs=1),
+  record the phase table, then choose the fix the numbers indict.
+
+### 2026-09-13 - Loop 34: Stage 0 tier build and retrieval matrix
+
+- Build: first 4-thread attempt measured ~1.2 chunks/s embedding (spec budget ~22/s);
+  stopped it. Thread sweep on 32 real chunks: 4/8/12/16 threads gave 0.3 (includes ORT
+  arena warm-up)/0.9/1.5/1.6 chunks/s; the full-core build then varied 1-5 chunks/s
+  with ~4.6 cores busy (AC power, Balanced plan). Embedding throughput is outside this
+  task's fix scope; recorded as a spec-budget miss for the final report.
+- Changed bench_scale.py: build embeds with all cores (script-only session) and past
+  `--real-chunks` (default 5000) copies indexed documents with their true vectors.
+- Tiers built (exit 0): 1k = 12 docs, 1,189 chunks; 5k = 48 docs, 5,061 chunks (all
+  embedded); 25k = 228 docs (180 copies), 25,265 chunks. vectors == chunks in each;
+  mean 434 tokens/chunk. Data under %LOCALAPPDATA%/byod/Cache/bench.
+- Retrieval matrix run: `bench_scale.py run --runs 20` (cases 0,3,7; --no-llm; Ollama
+  unloaded). Median of per-query medians / worst per-query p95, ms:
+
+| chunks | scope | cand | ctx chunks | ctx tok | candidates | embed | search | assembly | retrieval |
+|---|---|---|---|---|---|---|---|---|---|
+| 1,189 | workspace | 1189 | 17 | 6886 | 7.0/16.8 | 9.8/34.7 | 6.8/15.9 | 134.8/439.1 | 148.7/471.9 |
+| 1,189 | document | 3 | 2 | 154 | 5.5/7.8 | 9.8/13.0 | 5.5/8.1 | 24.2/36.5 | 36.2/53.1 |
+| 5,061 | workspace | 5061 | 17 | 7555 | 25.2/44.8 | 22.9/50.1 | 36.4/67.7 | 301.1/711.9 | 363.5/753.4 |
+| 5,061 | document | 3 | 2 | 154 | 8.7/11.4 | 12.9/16.0 | 17.6/23.8 | 30.6/106.5 | 56.7/169.4 |
+| 25,265 | workspace | 25265 | 20 | 7415 | 110.5/237.5 | 30.5/71.8 | 205.9/596.2 | 395.7/727.6 | 734.3/1270.5 |
+| 25,265 | document | 3 | 2 | 154 | 30.1/215.3 | 28.6/133.2 | 152.5/434.1 | 48.1/261.3 | 230.4/763.3 |
+
+- Reading: assembly dominates retrieval at 1k/5k and scales with context tokens (it
+  re-tokenizes the whole joined context per result); search is linear in total vectors
+  even with 3 candidates; candidate resolution is linear in chunk IDs. Whole-workspace
+  context is 45-50x the single-document context in tokens.
+- Running now: TTFT matrix `run --runs 1 --cases 7 --llm qwen3.6:latest`.
+- Next: record TTFT, pick the fix the dominant phase indicts.

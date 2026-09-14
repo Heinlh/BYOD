@@ -2,11 +2,17 @@
 
 import argparse
 import json
+import math
 import socket
+import statistics
 import threading
+import time
+import uuid
 import webbrowser
+from collections.abc import Generator
 from dataclasses import asdict
 from pathlib import Path
+from typing import cast
 
 import uvicorn
 
@@ -18,11 +24,105 @@ from byod.index.embed import Embedder
 from byod.ingest.chunk import chunk
 from byod.ingest.jobs import JobQueue
 from byod.ingest.normalize import parse
-from byod.llm.base import Message
+from byod.llm.base import Message, ProviderError
+from byod.llm.chat import SYSTEM
 from byod.llm.keys import KeyStore
 from byod.llm.providers import provider_for
 from byod.retrieve.search import Retriever
 from byod.tokenize import TokenCounter
+
+
+def bench(
+    config: Config,
+    workspace_id: int,
+    query: str,
+    document_ids: list[int] | None,
+    runs: int,
+    use_llm: bool,
+) -> dict[str, object]:
+    """Time the chat path phase by phase. Reports durations and counts, never text."""
+    retriever = Retriever(config, Embedder(config))
+    counter = TokenCounter(config)
+    selection = config.preferences().selection(workspace_id)
+    provider = None
+    warmup = None
+    errors: list[str] = []
+    if use_llm and selection.provider and selection.model:
+        provider = provider_for(selection.provider, KeyStore().get(selection.provider))
+        started = time.perf_counter()
+        # Load the model outside the timed runs so load and prefill are reported apart.
+        warm = cast(
+            Generator[str, None, None],
+            provider.stream([Message("user", "Reply with exactly OK.")], "", selection.model),
+        )
+        try:
+            next(warm, None)
+        except ProviderError as exc:
+            errors.append(exc.code)
+        warm.close()
+        warmup = round((time.perf_counter() - started) * 1000, 1)
+    samples: dict[str, list[float]] = {}
+    cold: dict[str, float] = {}
+    counts: dict[str, int] = {}
+    for run in range(runs + 1):  # Run 0 loads the embedder and tokenizer; reported as cold.
+        stats: dict[str, float] = {}
+        results = retriever.search(workspace_id, query, document_ids, stats=stats)
+        started = time.perf_counter()
+        context, included = retriever.context(results)
+        stats["assembly"] = stats.get("hydrate", 0.0) + time.perf_counter() - started
+        stats["retrieval"] = (
+            stats.get("candidates", 0.0) + stats.get("search", 0.0) + stats["assembly"]
+        )
+        if run and provider and selection.model and included:
+            # A per-run marker after the fixed system text keeps a provider's prefix cache
+            # from hiding context prefill, as for a new question in a real chat.
+            system = f"{SYSTEM}\n\nRun {uuid.uuid4().hex}\n\nEXCERPTS:\n{context}"
+            started = time.perf_counter()
+            tokens = cast(
+                Generator[str, None, None],
+                provider.stream([Message("user", query)], system, selection.model),
+            )
+            try:
+                first = next(tokens, None)
+                if first is not None:
+                    stats["ttft"] = time.perf_counter() - started
+            except ProviderError as exc:
+                errors.append(exc.code)
+                # A failed wait is a lower bound, not a successful first-token sample.
+                stats["provider_failed_wait"] = time.perf_counter() - started
+            tokens.close()
+        counts = {
+            "candidates": int(stats.get("candidate_count", 0)),
+            "results": len(results),
+            "chunks": len(included),
+            "context_tokens": counter.count(context) if context else 0,
+        }
+        for phase in (
+            "candidates", "embed", "search", "assembly", "retrieval", "ttft",
+            "provider_failed_wait",
+        ):
+            if phase in stats and run:
+                samples.setdefault(phase, []).append(stats[phase])
+            elif phase in stats:
+                cold[phase] = stats[phase]
+    return {
+        "runs": runs,
+        "scope": "documents" if document_ids else "workspace",
+        **counts,
+        "provider": selection.provider if provider else None,
+        "provider_warmup_ms": warmup,
+        "provider_errors": errors,
+        "cold_ms": {phase: round(value * 1000, 1) for phase, value in cold.items()},
+        "ms": {
+            phase: {
+                "median": round(statistics.median(values) * 1000, 1),
+                # Nearest-rank percentile; with few runs this is the slowest run.
+                "p95": round(sorted(values)[math.ceil(0.95 * len(values)) - 1] * 1000, 1),
+                "samples": len(values),
+            }
+            for phase, values in samples.items()
+        },
+    }
 
 
 def main() -> None:
@@ -50,6 +150,12 @@ def main() -> None:
     search.add_argument("query")
     search.add_argument("--doc", type=int, action="append", dest="document_ids")
     search.add_argument("--type", dest="doc_type")
+    timing = debug_commands.add_parser("bench", help="Phase latency; prints durations and counts")
+    timing.add_argument("workspace")
+    timing.add_argument("query")
+    timing.add_argument("--doc", type=int, action="append", dest="document_ids")
+    timing.add_argument("--runs", type=int, default=5)
+    timing.add_argument("--no-llm", action="store_true", help="Skip provider time to first token")
     llm = debug_commands.add_parser("llm")
     llm.add_argument("--provider", required=True, choices=["openai", "anthropic", "ollama"])
     llm.add_argument("--model")
@@ -85,13 +191,22 @@ def main() -> None:
                 print(token, end="", flush=True)
             print()
             return
-        if args.debug_command == "search":
+        if args.debug_command in {"search", "bench"}:
             with connect(config) as db:
                 row = db.execute(
                     "SELECT id FROM workspaces WHERE name=?", (args.workspace,)
                 ).fetchone()
             if row is None:
                 parser.error("Workspace not found")
+        if args.debug_command == "bench":
+            if args.runs < 1:
+                parser.error("--runs must be at least 1")
+            report = bench(
+                config, int(row[0]), args.query, args.document_ids, args.runs, not args.no_llm
+            )
+            print(json.dumps(report, indent=2))
+            return
+        if args.debug_command == "search":
             results = Retriever(config, Embedder(config)).search(
                 int(row[0]), args.query, args.document_ids, args.doc_type
             )

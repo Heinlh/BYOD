@@ -47,9 +47,27 @@ your OS keychain. BYOD has no accounts, analytics, or hosted backend.
 
 ## Setup instructions
 
-BYOD v1 runs from this project folder. Setup has two parts: build the app, then
-choose the provider you want to use for answers. Windows is the verified development
-platform; the commands below also work in a macOS or Linux terminal unless marked.
+### Install the Windows desktop app
+
+1. Open **BYOD-Setup-0.1.0-x64.exe**.
+2. Click **Install**. Setup adds BYOD to your Start menu and can create a desktop shortcut.
+3. Open **BYOD** and choose your provider in Settings, then add your documents.
+
+**No Python, Node.js, or terminal is needed.** BYOD opens in its own desktop window.
+Closing that window stops the app; your library and chats are saved for next time.
+Setup installs Microsoft's WebView2 runtime if missing, which requires internet.
+The first document ingestion downloads the local embedding model.
+
+The installer targets Windows 10 (build 19041+) and Windows 11 on x64. Local build
+output is `dist/installers/BYOD-Setup-0.1.0-x64.exe`; release assets must be uploaded
+separately before they can be downloaded from GitHub. See the
+[desktop guide](docs/DESKTOP.md) for packaging, uninstall, and signing details.
+
+<details>
+<summary><strong>Developer setup: run or build from source</strong></summary>
+
+Open the project folder in a terminal. Windows is the verified development platform;
+the browser-based source commands also work on macOS/Linux unless marked.
 
 ### 1. Install the essentials
 
@@ -63,7 +81,7 @@ On Windows, enable **Add Python to PATH** if the installer offers it. After
 installing the tools, reopen your terminal so it can find them.
 
 You also need either a provider API key or a local Ollama installation with a
-model. You can configure that in step 4. Initial dependency installation and the
+model. You can configure that in Settings below. Initial dependency installation and the
 first embedding-model download require internet access.
 
 ### 2. Open the project and install dependencies
@@ -107,7 +125,12 @@ uv run byod serve --port 8765 --no-open
 Then open **[http://127.0.0.1:8765](http://127.0.0.1:8765)**. BYOD serves the
 interface and API from this one local process.
 
-### 4. Choose your provider
+To build the Windows installer instead, install Inno Setup 6 and run
+`.\scripts\build_windows.ps1`. The script bundles Python and the interface.
+
+</details>
+
+### Choose your provider
 
 Create a workspace with the **+** beside **Workspaces**, name it for a course,
 then open **Settings** to choose how BYOD answers questions in that workspace.
@@ -133,7 +156,7 @@ Ollama needs no API key. Model size and available RAM affect response speed;
 large models running on CPU can take several minutes to load. BYOD does not
 install a reasoning model for you.
 
-### 5. Add documents and ask your first question
+### Add documents and ask your first question
 
 1. Open **Documents → Add files** and paste full file paths, one per line.
    On Windows, File Explorer's **Copy as path** is useful here. For a course folder,
@@ -145,8 +168,9 @@ install a reasoning model for you.
 4. Click a citation to read its source excerpt. **Open source file** opens the
    original document.
 
-Your setup is complete. On your next visit, run `uv run byod serve` again from
-the project folder. Your workspaces and chats will still be there.
+Your setup is complete. On your next visit, open **BYOD** from your desktop or
+Start menu. For a source build, run `uv run byod serve` from the project folder.
+Your workspaces and chats will still be there.
 
 ---
 

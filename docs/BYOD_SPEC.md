@@ -55,6 +55,17 @@ Auth, multi-user, sync, sharing, cloud storage, telemetry, agents, packaged inst
 
 ## 3. System overview
 
+### Windows desktop distribution (user-approved addition)
+
+The user requested an executable installer and selected a dedicated desktop window
+on 2026-09-12. PyInstaller bundles the existing Python application and compiled
+React assets. Optional pywebview hosts the interface in Windows WebView2; FastAPI
+still runs in the same Python process on loopback. Closing the window stops the
+server. Inno Setup installs per user and adds desktop/Start-menu shortcuts.
+Setup installs Microsoft's WebView2 runtime if missing. Application data remains
+outside the install directory and survives upgrades/uninstallation. The existing
+browser/CLI launch path remains supported for development.
+
 Single Python process. FastAPI serves the JSON API under `/api` and the compiled React bundle at `/`. CLI entry point binds `127.0.0.1` on a free port, opens the browser, and runs until interrupted.
 
 ```

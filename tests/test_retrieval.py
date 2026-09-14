@@ -2,16 +2,19 @@ import json
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
+from byod.cli import bench
 from byod.config import Config
 from byod.db.migrations import connect, initialize
 from byod.db.queries import create_workspace
 from byod.errors import ByodError
 from byod.index.embed import Embedder
 from byod.ingest.jobs import JobQueue
+from byod.llm.base import Message, ProviderError
 from byod.retrieve.search import Retriever
 from byod.tokenize import TokenCounter
 
@@ -81,7 +84,7 @@ def test_missing_source_is_excluded(ingest_config: Config) -> None:
         jobs.close()
 
 
-def test_search_cli_gate(ingest_config: Config) -> None:
+def test_search_cli_gate(ingest_config: Config, monkeypatch: pytest.MonkeyPatch) -> None:
     command = [sys.executable, "-m", "byod.cli", "--data-dir", str(ingest_config.data_dir)]
     subprocess.run(  # noqa: S603
         command + ["add", "Biology", str(FIXTURES / "lecture.pptx")],
@@ -100,3 +103,28 @@ def test_search_cli_gate(ingest_config: Config) -> None:
         timeout=30,
     )
     assert json.loads(result.stdout) == []
+    benchmark = command + ["debug", "bench", "Biology", "photosynthesis", "--runs", "3", "--no-llm"]
+    result = subprocess.run(benchmark, capture_output=True, check=True, timeout=60)  # noqa: S603
+    report = json.loads(result.stdout)
+    assert report["runs"] == 3 and report["scope"] == "workspace"
+    assert report["candidates"] > 0 and report["chunks"] > 0 and report["context_tokens"] > 0
+    assert set(report["ms"]) == {"candidates", "embed", "search", "assembly", "retrieval"}
+    assert all(0 <= phase["median"] <= phase["p95"] for phase in report["ms"].values())
+    assert b"photosynthesis" not in result.stdout.lower()  # Neither query nor chunk text.
+
+    class UnavailableProvider:
+        def stream(self, messages: list[Message], system: str, model: str) -> Iterator[str]:
+            raise ProviderError("PROVIDER_TIMEOUT", "ollama")
+            yield ""  # pragma: no cover
+
+    monkeypatch.setattr("byod.cli.provider_for", lambda *_: UnavailableProvider())
+    with ingest_config.edit_preferences() as preferences:
+        preferences.active.provider = "ollama"
+        preferences.active.model = "test"
+    with connect(ingest_config) as db:
+        workspace = int(db.execute("SELECT id FROM workspaces").fetchone()[0])
+    timed = bench(ingest_config, workspace, "photosynthesis", None, 1, True)
+    assert isinstance(timed["ms"], dict)
+    assert "ttft" not in timed["ms"]
+    assert timed["ms"]["provider_failed_wait"]["samples"] == 1
+    assert timed["provider_errors"] == ["PROVIDER_TIMEOUT", "PROVIDER_TIMEOUT"]
